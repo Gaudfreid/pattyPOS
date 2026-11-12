@@ -198,8 +198,8 @@ function short(ls){const it={},ig={};ls.forEach(l=>{const p=I(l.id);it[l.id]=(it
  for(const id in it){const p=I(id);if(it[id]>p.stock)return 'Only '+p.stock+' '+p.name+' left. Restock in Inventory.'}
  for(const k in ig){const g=S.ings.find(x=>x.name.toLowerCase()===k);if(g&&ig[k]>g.qty)return 'Not enough '+g.name+': '+g.qty+g.unit+' left.'}return''}
 function use(ls,k){ls.forEach(l=>{const p=I(l.id);if(!p)return;p.stock-=k*l.q;parseRec(p.rec).forEach(r=>{const g=S.ings.find(x=>x.name.toLowerCase()===r.n);if(g)g.qty=r2(g.qty-k*r.q*l.q)})})}
-function calc(){let sub=0;cart.forEach(l=>{const p=I(l.id);l.u=(ctx.svc==='del'&&p.dp?p.dp:p.price)+l.o.reduce((a,o)=>a+o.p,0);l.t=r2(l.u*l.q*(1-l.ld/100));sub+=l.t});
- const d=r2(Math.min(sub,sub*ctx.pct/100+ctx.fix)),del=ctx.svc==='del'?num(S.biz.del):0;return{sub:r2(sub),d,del,total:r2(sub-d+del)}}
+function calc(){let sub=0;cart.forEach(l=>{const p=I(l.id);l.u=(ctx.svc==='del'&&p.dp&&ctx.web==null?p.dp:p.price)+l.o.reduce((a,o)=>a+o.p,0);l.t=r2(l.u*l.q*(1-l.ld/100));sub+=l.t});
+ const d=r2(Math.min(sub,sub*ctx.pct/100+ctx.fix)),del=ctx.svc==='del'?(ctx.web!=null?num(ctx.dfee):num(S.biz.del)):0;return{sub:r2(sub),d,del,total:r2(sub-d+del)}}
 function addLine(p,o){const k=o.map(x=>x.n).join('|'),l=cart.find(l=>l.id===p.id&&l.o.map(x=>x.n).join('|')===k&&!l.nt&&!l.ld);
  const m=short([...cart,{id:p.id,q:1}]);if(m){toast(m);return}
  if(l)l.q++;else cart.push({u2:++uid,id:p.id,q:1,o,nt:'',ld:0});regCart()}
@@ -605,9 +605,9 @@ ck(i,b){if(b.dataset.k){S.ck=S.ck||{};S.ck[b.dataset.k]=1;save()}tab=i;fq='';ren
  webref(){SYNC.web();toast('Refreshing…')},
  webacc(id){const q=((S.own.web)||[]).find(x=>x.id===id);if(!q)return;if(cart.length)return toast('Finish or hold the current sale first.');
   const L=webItems(q);if(!L.length||L.some(l=>!l.p||!l.p.on||l.q<1))return toast('An item on this order is missing or sold out in the POS. Check Items.');
-  reset();cart=L.map(l=>({id:l.p.id,q:l.q,o:[],nt:'',ld:0,u2:++uid}));ctx.svc=q.svc==='pickup'?'out':'del';ctx.cust=q.name;ctx.web=q.id;
+  reset();cart=L.map(l=>({id:l.p.id,q:l.q,o:[],nt:'',ld:0,u2:++uid}));ctx.svc=q.svc==='pickup'?'out':'del';ctx.cust=q.name;ctx.web=q.id;ctx.dfee=q.svc==='delivery'?num(q.fee):0;
   ctx.note='Website order'+(q.pay_method?' · pays by '+(q.pay_method==='gcash'?'GCash':'cash'):'')+(q.svc==='delivery'?' · quoted delivery fee '+peso(num(q.fee)):'')+' · quoted total '+peso(webTotal(q));
-  save();tab='reg';render()},
+  save();tab='reg';render();if(q.svc==='delivery'&&!(+q.fee>0))toast('Heads up: no delivery fee was entered for this order. The total has no delivery charge.')},
  oacc(i){const o=S.online.splice(+i,1)[0];reset();cart=o.cart.map(l=>({...l,u2:++uid}));ctx.svc='del';ctx.cust=o.cust;save();tab='reg';render()},
  orej(i){S.online.splice(+i,1);save();render()},
  pay(){if(S.closed===day(Date.now())){toast('The day is closed. A manager can reopen it in Cash Drawer.');return}const t=calc();if(!t.total&&!cart.length)return;const K=['cash','gcash','card'].filter(k=>S.pay[k]);

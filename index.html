@@ -197,11 +197,13 @@ groups:[{name:'Add-ons',multi:1,txt:'Extra graham +10, Crushed pistachio +20, Wh
 ings:[{name:'Graham Crackers',unit:'packs',qty:2,low:3},{name:'Pistachios',unit:'packs',qty:1,low:2},{name:'Strawberries',unit:'kg',qty:1.5,low:1},{name:'Bananas',unit:'pcs',qty:40,low:10},{name:'Mango',unit:'g',qty:2000,low:500}],
 promos:[{name:'Senior or PWD',pct:20},{name:'Staff meal',pct:50}],staff:[{id:1,name:'Owner',role:'manager',pin:'1234'},{id:2,name:'Ana',role:'cashier',pin:'0000'}],
 lock:['cash','staff','items','inv','rep','set'],shifts:[],orders:[],parked:[],online:[],cash:{start:1000,locked:0,log:[]},adj:[]});
-const seed=()=>{const s=seed0();demo(s);return s};
+const seed=()=>seed0();
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||seed();
 const MENU2=[['banana','Banana Pudding',95,250,'Graham Crackers 0.3, Bananas 3'],['mango','Mango Coco Cloud',110,300,'Graham Crackers 0.3, Mango 240'],['apple','Apple Crisp',100,270,'Graham Crackers 0.3'],['strawberry','Strawberry',110,300,'Graham Crackers 0.3, Strawberries 0.15'],['pistachio','Pistachio Banana',130,380,'Pistachios 0.3, Bananas 3']];
 (function(){if(S.mv>=2)return;MENU2.forEach(m=>{const a=S.items.find(p=>!p.sk&&p.img===m[0]);if(a){a.name=m[1]+' 4oz';a.price=a.dp=m[2]}
 if(!S.items.some(p=>p.sk===m[0]+'12')){const b=a?{...a}:{cat:'Pudding Cups',low:5,groups:'Add-ons',img:m[0]};b.id=++S.id;b.sk=m[0]+'12';b.name=m[1]+' 12oz';b.price=b.dp=m[3];b.cost=0;b.stock=0;b.rec=m[4];b.code='';b.on=1;S.items.push(b)}});S.mv=2;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}})();
+/* sample sales from older versions are fake: remove them once */
+(function(){if(S.orders.some(o=>o.demo)){S.orders=S.orders.filter(o=>!o.demo);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}})();
 const SV={t:0,ok:null,err:'',p:null};
 const save=()=>{try{const j=JSON.stringify(S);localStorage.setItem(KEY,j);const r=localStorage.getItem(KEY);SV.ok=!!r&&r.length===j.length;if(SV.ok){SV.t=Date.now();SV.err=''}else SV.err='The browser did not keep the save.'}catch(e){SV.ok=false;SV.err=(e&&e.name==='QuotaExceededError')?'This computer\'s browser storage is full.':'The browser blocked saving.'}if(SV.ok===false&&typeof stChip==='function')stChip();if(window.SYNC)SYNC.kick()};
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().then(v=>{SV.p=v;if(typeof stChip==='function')stChip()})}catch(e){}
@@ -240,12 +242,12 @@ function regCart(){const t=calc();
  ['svc','tbl','cust','note','pn','fix'].forEach(k=>{const e=$('[data-x='+k+']');if(e&&document.activeElement!==e)e.value=ctx[k]||''});
  $('#chg').disabled=!cart.length;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===ctx.svc));{const c=$('#cnt'),n=cart.reduce((a,l)=>a+l.q,0);if(c)c.textContent=n+(n===1?' item':' items')}$('#hold').disabled=!cart.length;S.cur={cart,ctx};save();csPaint()}
 const V={};
-V.reg=()=>`<div class="sell"><div><input id="q" placeholder="Search an item, or scan a barcode and press Enter" autocomplete="off"><div id="chips" class="chips"></div><div id="grid" class="tiles"></div></div><div class="box tkt"><div class="tkh"><h2>Order</h2><span id="cnt" class="pill"></span></div><div class="seg"><button data-v="in" onclick="ctx.svc='in';regCart()">Dine-in</button><button data-v="out" onclick="ctx.svc='out';regCart()">Take-out</button><button data-v="del" onclick="ctx.svc='del';regCart()">Delivery</button></div><details class="more"><summary>Customer, table, note</summary><div class="g2"><select data-x="svc" style="display:none"><option value="in">Dine-in</option><option value="out">Take-out</option><option value="del">Delivery (uses delivery prices)</option></select><input data-x="tbl" placeholder="Table no."></div><input data-x="cust" list="cl" placeholder="Customer name" autocomplete="off"><datalist id="cl">${custL().map(c=>`<option value="${esc(c.nm)}">`).join('')}</datalist><div style="height:6px"></div><input data-x="note" placeholder="Order note"></details><div id="lines"></div><div class="g2"><select data-x="pn" id="pn"></select><input data-x="fix" type="number" min="0" placeholder="₱ off bill"></div><div id="tot"></div><div class="g2"><button id="hold" data-a="hold">Hold order</button><button data-a="clr">Clear</button></div><button class="pri" id="chg" data-a="pay">Charge</button></div></div>`;
+V.reg=()=>`<div class="sell"><div><input id="q" placeholder="Search an item, or scan a barcode and press Enter" autocomplete="off"><div id="chips" class="chips"></div><div id="grid" class="tiles"></div></div><div class="box tkt"><div class="tkh"><h2>Order</h2><span id="cnt" class="pill"></span></div><div class="seg"><button data-v="in" onclick="ctx.svc='in';regCart()">Dine-in</button><button data-v="out" onclick="ctx.svc='out';regCart()">Take-out</button><button data-v="del" onclick="ctx.svc='del';regCart()">Delivery</button></div><input data-x="cust" list="cl" placeholder="Customer name (tracks repeat customers)" autocomplete="off" style="margin:0 0 6px"><div class="chips" id="cchips" style="margin:0 0 6px">${custL().slice(0,5).map(c=>`<button class="sm" data-a="nmfill" data-i="${esc(c.nm)}">${esc(c.nm)}</button>`).join('')}</div><datalist id="cl">${custL().map(c=>`<option value="${esc(c.nm)}">`).join('')}</datalist><details class="more"><summary>Table, note</summary><div class="g2"><select data-x="svc" style="display:none"><option value="in">Dine-in</option><option value="out">Take-out</option><option value="del">Delivery (uses delivery prices)</option></select><input data-x="tbl" placeholder="Table no."></div><input data-x="note" placeholder="Order note"></details><div id="lines"></div><div class="g2"><select data-x="pn" id="pn"></select><input data-x="fix" type="number" min="0" placeholder="₱ off bill"></div><div id="tot"></div><div class="g2"><button id="hold" data-a="hold">Hold order</button><button data-a="clr">Clear</button></div><button class="pri" id="chg" data-a="pay">Charge</button></div></div>`;
 V.ord=()=>`<h2>Orders</h2><h3>Held orders</h3>${tbl(['Held','By','Customer','Items',''],S.parked.map((p,i)=>`<tr><td>${tm(p.t)}</td><td>${esc(p.by)}</td><td>${esc(p.ctx.cust||p.ctx.tbl||'–')}</td><td>${p.cart.reduce((a,l)=>a+l.q,0)}</td><td><button class="sm" data-a="resume" data-i="${i}">Resume</button> <button class="sm" data-a="pdel" data-i="${i}">Delete</button></td></tr>`))}
 <h3>Online orders</h3>${webBox()}`;
 const inR=(o,r)=>r==='all'||(r==='today'?day(o.t)===day(Date.now()):Date.now()-o.t<=r*864e5);
 V.txn=()=>{const f=fq.toLowerCase(),os=S.orders.filter(o=>(!f||(o.no+o.cust+o.by).toLowerCase().includes(f))&&inR(o,rng));
- return `<h2>Transactions</h2><div class="row"><input data-f="1" placeholder="Search receipt, customer, cashier" value="${esc(fq)}"><select data-r="1">${[['today','Today'],['7','Last 7 days'],['30','Last 30 days'],['all','All time']].map(r=>`<option value="${r[0]}"${rng===r[0]?' selected':''}>${r[1]}</option>`).join('')}</select><button data-a="zr">Z-reading (today)</button></div>${tbl(['Receipt','Time','Cashier','Type','Total','Paid with','Status',''],os.map(o=>`<tr><td>${o.no}</td><td>${dt(o.t)}</td><td>${esc(o.by)}</td><td>${{in:'Dine-in',out:'Take-out',del:'Delivery'}[o.svc]}</td><td>${peso(o.total)}</td><td>${['cash','gcash','card'].filter(k=>o.pay[k]>0).join(' + ')}</td><td><span class="tag ${o.st==='ok'?'g':'b'}">${o.st==='ok'?'Paid':'Refunded'}</span></td><td><button class="sm" data-a="view" data-i="${o.id}">View</button> ${o.st==='ok'?`<button class="sm" data-a="refund" data-i="${o.id}">Refund</button>`:''}</td></tr>`))}`};
+ return `<h2>Transactions</h2><div class="row"><input data-f="1" placeholder="Search receipt, customer, cashier" value="${esc(fq)}"><select data-r="1">${[['today','Today'],['7','Last 7 days'],['30','Last 30 days'],['all','All time']].map(r=>`<option value="${r[0]}"${rng===r[0]?' selected':''}>${r[1]}</option>`).join('')}</select><button data-a="zr">Z-reading (today)</button></div>${tbl(['Receipt','Time','Customer','Cashier','Type','Total','Paid with','Status',''],os.map(o=>`<tr><td>${o.no}</td><td>${dt(o.t)}</td><td>${String(o.cust||'').trim()?esc(String(o.cust).trim()):'<span class="mut">Walk-in</span>'}</td><td>${esc(o.by)}</td><td>${{in:'Dine-in',out:'Take-out',del:'Delivery'}[o.svc]}</td><td>${peso(o.total)}</td><td>${['cash','gcash','card'].filter(k=>o.pay[k]>0).join(' + ')}</td><td><span class="tag ${o.st==='ok'?'g':'b'}">${o.st==='ok'?'Paid':'Refunded'}</span></td><td><button class="sm" data-a="view" data-i="${o.id}">View</button> ${o.st==='ok'?`<button class="sm" data-a="refund" data-i="${o.id}">Refund</button>`:''}</td></tr>`))}`};
 const cashT=()=>{const l=S.cash.log.filter(x=>day(x.t)===day(Date.now())),add=sum(l.filter(x=>x.k==='add'),x=>x.a),exp=sum(l.filter(x=>x.k==='exp'),x=>x.a),s=sum(S.orders.filter(o=>o.st==='ok'&&day(o.t)===day(Date.now())),o=>o.pay.cash);return{add,exp,s,d:r2(S.cash.start+add+s-exp)}};
 V.cash=()=>{const c=cashT(),L=S.cash.locked;return `<h2>Cash Drawer ${L?'<span class="tag b">Locked</span>':''}</h2><div class="cards"><div><span>Starting cash</span><b>${peso(S.cash.start)}</b></div><div><span>Cash added</span><b>${peso(c.add)}</b></div><div><span>Cash sales</span><b>${peso(c.s)}</b></div><div><span>Cash expenses</span><b>${peso(c.exp)}</b></div><div class="hi"><span>Cash in drawer</span><b>${peso(c.d)}</b></div></div>
 <div class="box"><div class="row"><label>Starting cash ${inp('cash.start',S.cash.start,'number')}</label><button data-a="lock">${L?'Unlock drawer':'Lock drawer'}</button></div>
@@ -287,7 +289,9 @@ ${sc('📡','Offline and sync',`Everything is saved on this device first. Sales 
 ${sc('🧭','Guide & FAQ',`A short tour of every tab, plus answers to common questions. Type a question to search.`,`<div class="row"><button class="pri" style="width:auto;min-height:42px;font-size:15px" data-a="tour">Show me around</button><button data-a="faq">FAQ & ask</button></div>`)}
 ${sc('💾','Backup & restore',`Your data lives on this device. Download a backup file every week, and restore it here if you ever switch computers.`,`<div class="row"><button class="pri" style="width:auto;min-height:42px;font-size:15px" data-a="bk">Download backup</button><button data-a="rs">Restore from file</button></div>${S.own&&S.own.bk?`<p class="mut">Last backup: ${new Date(S.own.bk).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</p>`:'<p class="mut">No backup yet.</p>'}`)}
 ${sc('📱','Owner app',`Send today’s numbers to the Patty Burps owner app on your phone. Re-export any time to refresh.`,`<div class="row"><button class="pri" style="width:auto;min-height:42px;font-size:15px" data-a="xo">Export file</button><button data-a="xc">Copy data</button></div>`)}
-${sc('⚠️','Danger zone','Clear all history removes every sale, expense, cash entry, shift and stock adjustment here and in the cloud. It keeps your items, prices, ingredients, staff and settings. Erase all data resets those too.',`<button data-a="clrs" style="border-color:var(--bad);color:var(--bad);margin-bottom:8px">Clear all history (keeps items and settings)</button><button data-a="wipe" style="border-color:var(--bad);color:var(--bad)">Erase all data and start over</button>`,'dz')}
+${sc('📊','Excel report',`Download a closing report for one day: sales, cash and GCash, expenses and a balance check. Opens in Excel or Google Sheets.`,`<div class="row"><input type="date" id="xld" value="${XL.today()}" style="width:auto"><button class="pri" style="width:auto;min-height:42px;font-size:15px" data-xl="1">Download Excel</button></div>`)}
+${sc('☁️','Settings in the cloud',`Your business details, items, recipes, promos, GCash QR and receipt counter are saved to the cloud by themselves, so a new computer can rebuild itself after you sign in.`,`<div class="row"><span class="pill">${SYNC.cfgTxt()}</span></div><div class="row"><button data-cf="manual">Restore from cloud</button></div>`)}
+${sc('⚠️','Danger zone','Clear all history removes every sale, expense, cash entry, shift and stock adjustment here and in the cloud. It keeps your items, prices, ingredients, staff and settings. Erase all data resets those too and also clears the cloud copy of sales and expenses.',`<button data-a="clrs" style="border-color:var(--bad);color:var(--bad);margin-bottom:8px">Clear all history (keeps items and settings)</button><button data-a="wipe" style="border-color:var(--bad);color:var(--bad)">Erase all data and start over</button>`,'dz')}
 <div class="ow" style="display:contents">${OW.tools()}</div></div>`};
 V.help=()=>{const d=(t,b)=>`<details><summary>${t}</summary><p>${b}</p></details>`;return `<h2>Help</h2><div class="box">${d('Register','Tap an item to add it. Items with options ask for sugar, ice or add-ons. Scan a barcode into the search box and press Enter. Use % off on a line for an item discount, or pick a promo for the whole bill. Hold order saves it under Orders. Delivery uses each item’s delivery price plus the delivery charge. Payment can be split across cash, GCash and card.')}${d('Transactions','Refund asks for a reason and returns the stock. Z-reading summarizes today’s sales, discounts, refunds, payments and receipt range.')}${d('Cash Drawer','Cash in drawer = (starting cash + cash added + cash sales) − cash expenses. Added, sales and expenses reset each day at 12:00am. Lock the drawer to stop entries.')}${d('Staff','Clock in and out for attendance. Switch user from the top right with a passcode. Demo passcodes: Owner 1234, Ana 0000. Change them here.')}${d('Items and Inventory','Option groups list choices as: name +price. Recipes deduct ingredients on every sale. Sales are blocked when stock or an ingredient runs out.')}${d('Reports','Net sales, cost of goods, profit, sales per hour and weekday, per cashier, itemized and unsold items for any range.')}${d('Offline','Sales save on this device first and queue until you sync. Nothing is lost if the connection drops.')}</div>`};
 const IC={"ov": "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z", "own": "M3 7h18v13H3zM9 7V4h6v3M3 13h18", "reg": "M3 4h2l2.4 11h10.2L20 8H6M9 20h.01M17 20h.01", "ord": "M9 3h6v3H9zM6 5H5v16h14V5h-1M9 11h6M9 15h6", "txn": "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6", "cus": "M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 20v-2a4 4 0 0 0-3-3.9M16 3.1a3.5 3.5 0 0 1 0 6.8", "cash": "M2 6h20v12H2zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6", "staff": "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "items": "M20 12l-8 8-9-9V3h8zM7.5 7.5h.01", "inv": "M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8", "rep": "M4 20V10M10 20V4M16 20v-7M22 20H2", "set": "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M14 4v4M8 10v4M16 16v4", "help": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5M12 17h.01"};
@@ -420,7 +424,7 @@ chk(i,v){const d=S.own.chk.done;if(v&&!d.includes(i))d.push(i);if(!v)S.own.chk.d
 menu(){const m=S.own.margin;return`<div class="box"><h3>Menu</h3><p class="mut">Profit margin shown vs your ${m}% target. Photos are shrunk to stay small.</p>${S.items.map(p=>{const mg=p.price?Math.round((p.price-p.cost)/p.price*100):0,sg=Math.ceil(p.cost/(1-m/100)/5)*5;return`<div class="li"><div class="th">${PIC[p.img]?`<img src="${PIC[p.img]}" alt="">`:'🍮'}</div><div style="flex:1"><b>${esc(p.name)}</b><div class="mut">Margin <b style="color:${mg>=m?'var(--ok)':'var(--bad)'}">${mg}%</b>${mg<m?` · try ${peso(sg)}`:''}</div><div class="fr"><label>Price<input type="number" value="${p.price}" onchange="OW.it(${p.id},'price',this.value)"></label><label>Cost<input type="number" value="${p.cost}" onchange="OW.it(${p.id},'cost',this.value)"></label></div></div><div class="col"><label class="ph">📷<input type="file" accept="image/*" hidden onchange="OW.ph(${p.id},this)"></label><label><input type="checkbox" ${p.on?'checked':''} onchange="OW.it(${p.id},'on',this.checked?1:0)"> On</label></div></div>`}).join('')}</div>`},
 it(id,f,v){const p=I(id);p[f]=num(v);this.lg(`${p.name}: ${f} → ${num(v)}`);save();render()},
 ph(id,i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,480/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);const p=I(id);p.pic=c.toDataURL('image/jpeg',.8);p.img='u'+p.id;PIC[p.img]=p.pic;this.lg(p.name+': new photo');save();render()};im.src=r.result};r.readAsDataURL(f)},
-money(){const n=this.d,p=this.pl(n),o=S.own,cut=Date.now()-n*864e5;return`<div class="box"><div class="owt">${[7,30].map(d=>`<button class="${n==d?'on':''}" onclick="OW.d=${d};render()">${d} days</button>`).join('')}</div><h3>Net profit</h3><div class="big">${this.A$(p.n)}</div>${rw('Sales',this.A$(p.r))}${rw('Item costs',this.A$(p.cg))}${rw('Expenses',this.A$(p.ex))}${rw('Left after everything',this.A$(p.n))}<button onclick="OW.csv()" style="margin-top:8px">⬇ Export sales (CSV)</button></div>
+money(){const n=this.d,p=this.pl(n),o=S.own,cut=Date.now()-n*864e5;return`<div class="box"><div class="owt">${[7,30].map(d=>`<button class="${n==d?'on':''}" onclick="OW.d=${d};render()">${d} days</button>`).join('')}</div><h3>Net profit</h3><div class="big">${this.A$(p.n)}</div>${rw('Sales',this.A$(p.r))}${rw('Item costs',this.A$(p.cg))}${rw('Expenses',this.A$(p.ex))}${rw('Left after everything',this.A$(p.n))}<button onclick="OW.csv()" style="margin-top:8px">⬇ Export sales (CSV)</button> <button onclick="XL.go()" style="margin-top:8px">⬇ Excel report (today)</button></div>
 <div class="box"><h3>Add an expense</h3><div class="fr"><select id="oc">${['Rent','Utilities','Ingredients','Packaging','Delivery','Marketing','Other'].map(c=>`<option>${c}</option>`).join('')}</select><input id="oa" type="number" placeholder="Amount"><input id="on" placeholder="Note (optional)"></div><label class="r" style="justify-content:flex-start;gap:8px;margin-top:8px"><input type="checkbox" id="od" style="width:auto"> Paid with cash from the drawer</label><p class="mut sd">Log each spend once, here. Cash from the drawer goes on the drawer count too, so don’t also use Record expense in Cash Drawer. Skip ingredients already in your item costs (Menu tab); those are counted as Item costs.</p><button class="pri" style="width:auto;margin-top:8px" onclick="OW.addE()">Add</button>${this.allE(cut).slice(0,8).map(e=>`<div class="r"><span>${esc(e.c)}${e.n?' · '+esc(e.n):''} ${e.d?'<span class="tag">Drawer</span> ':''}<small class="mut">${new Date(e.t).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</small></span><b>${this.A$(e.a)} ${e.d?'':`<a onclick="OW.delE(${e.t})">✕</a>`}</b></div>`).join('')}</div>
 <div class="box"><h3>Bills that repeat monthly</h3><div class="fr"><input id="bn" placeholder="Name (e.g. Rent)"><input id="ba" type="number" placeholder="Amount"><input id="bd" type="number" placeholder="Day of month"></div><button class="pri" style="width:auto;margin-top:8px" onclick="OW.addB()">Add bill</button>${o.bills.map((b,i)=>`<div class="r"><span>${esc(b.name)} · day ${b.d} <small class="mut">due ${this.due(b)?'in '+this.due(b)+'d':'today'}</small></span><b>${this.A$(b.a)} <a onclick="OW.delB(${i})">✕</a></b></div>`).join('')||'<p class="mut emp">No bills yet.</p>'}</div>`},
 allE(cut){return S.own.exp.filter(e=>e.t>cut).map(e=>({t:e.t,c:e.c,n:e.n,a:e.a,d:0})).concat(S.cash.log.filter(l=>l.k==='exp'&&l.t>cut).map(l=>({t:l.t,c:'Cash drawer',n:l.n,a:l.a,d:1}))).sort((a,b)=>b.t-a.t)},
@@ -438,6 +442,140 @@ ${onlineBox()}
 ${o.tools.log?`<div class="box"><h3>Activity history</h3>${o.log.map(l=>`<div class="r"><span>${esc(l.m)}</span><small class="mut">${new Date(l.t).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</small></div>`).join('')||'<p class="mut emp">Nothing yet.</p>'}</div>`:''}`}};
 OW.init();V.own=()=>OW.view();
 OW.bk=function(){S.own.bk=Date.now();save();const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='patty-burps-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('Backup saved. Keep the file somewhere safe.');render()};
+/* ===== Excel report (no libraries, works offline) ===== */
+const XL=(()=>{
+const X=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
+const CL=n=>{let s='';n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
+const R2=n=>Math.round((+n||0)*100)/100;
+const ST={def:0,title:1,hdr:2,txt:3,peso:4,int:5,inP:6,inT:7,bP:8,note:9,dt:10,bold:11,inPct:12,sec:13,res:14,inD:15,pct:16,tm:17};
+const stylesXml=()=>{const nf='<numFmts count="3"><numFmt numFmtId="164" formatCode="&quot;₱&quot;#,##0.00;[Red]-&quot;₱&quot;#,##0.00"/><numFmt numFmtId="165" formatCode="mmm d, yyyy"/><numFmt numFmtId="166" formatCode="mmm d, h:mm AM/PM"/></numFmts>';
+ const fo=['<font><sz val="10"/><name val="Arial"/></font>','<font><b/><sz val="14"/><color rgb="FF1F3A8A"/><name val="Arial"/></font>','<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>','<font><sz val="10"/><color rgb="FF0000FF"/><name val="Arial"/></font>','<font><i/><sz val="9"/><color rgb="FF666666"/><name val="Arial"/></font>','<font><b/><sz val="10"/><name val="Arial"/></font>','<font><b/><sz val="12"/><name val="Arial"/></font>'];
+ const fi=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>','<fill><patternFill patternType="solid"><fgColor rgb="FF1F3A8A"/><bgColor indexed="64"/></patternFill></fill>','<fill><patternFill patternType="solid"><fgColor rgb="FFFFF4B8"/><bgColor indexed="64"/></patternFill></fill>'];
+ const bd=['<border><left/><right/><top/><bottom/><diagonal/></border>','<border><left style="thin"><color rgb="FFBBBBBB"/></left><right style="thin"><color rgb="FFBBBBBB"/></right><top style="thin"><color rgb="FFBBBBBB"/></top><bottom style="thin"><color rgb="FFBBBBBB"/></bottom><diagonal/></border>'];
+ // numFmt,font,fill,border,align
+ const xf=[[0,0,0,0],[0,1,0,0],[0,2,2,1,'c'],[0,0,0,1],[164,0,0,1],[3,0,0,1],[164,3,3,1],[0,3,3,1],[164,5,0,1],[0,4,0,0],[166,0,0,1],[0,5,0,0],[9,3,3,1],[0,2,2,0],[0,6,0,0,'w'],[165,3,3,1],[9,0,0,1],[166,0,0,1]];
+ const cx=xf.map(a=>'<xf numFmtId="'+a[0]+'" fontId="'+a[1]+'" fillId="'+a[2]+'" borderId="'+a[3]+'" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"'+(a[4]?' applyAlignment="1"><alignment '+(a[4]=='c'?'horizontal="center" vertical="center" wrapText="1"':'vertical="center" wrapText="1"')+'/></xf>':'/>')).join('');
+ const dx='<dxfs count="2"><dxf><font><b/><color rgb="FF006100"/></font><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf><dxf><font><b/><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf></dxfs>';
+ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+nf+'<fonts count="'+fo.length+'">'+fo.join('')+'</fonts><fills count="'+fi.length+'">'+fi.join('')+'</fills><borders count="'+bd.length+'">'+bd.join('')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xf.length+'">'+cx+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'+dx+'</styleSheet>'};
+class Sh{constructor(n){this.n=n;this.r={};this.w=[];this.m=[];this.fz=0;this.cf=[];this.grid=1}
+ p(r,c,v,s,f){(this.r[r]=this.r[r]||{})[c]={v,s:s==null?0:s,f}}
+ xml(){const rows=Object.keys(this.r).map(Number).sort((a,b)=>a-b).map(ri=>{const cs=this.r[ri];return '<row r="'+(ri+1)+'"'+(this.h&&this.h[ri]?' ht="'+this.h[ri]+'" customHeight="1"':'')+'>'+Object.keys(cs).map(Number).sort((a,b)=>a-b).map(ci=>{const o=cs[ci],ref=CL(ci)+(ri+1),v=o.v;
+  if(o.f!=null){const isS=typeof v==='string';return '<c r="'+ref+'" s="'+o.s+'"'+(isS?' t="str"':'')+'><f>'+X(o.f)+'</f>'+(v==null?'':'<v>'+X(v)+'</v>')+'</c>'}
+  if(typeof v==='number'&&isFinite(v))return '<c r="'+ref+'" s="'+o.s+'"><v>'+v+'</v></c>';
+  if(v==null||v==='')return '<c r="'+ref+'" s="'+o.s+'"/>';
+  return '<c r="'+ref+'" s="'+o.s+'" t="inlineStr"><is><t xml:space="preserve">'+X(v)+'</t></is></c>'}).join('')+'</row>'}).join('');
+  const pane=this.fz?'<pane ySplit="'+this.fz+'" topLeftCell="A'+(this.fz+1)+'" activePane="bottomLeft" state="frozen"/>':'';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"'+(this.grid?'':' showGridLines="0"')+'>'+pane+'</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>'+this.w.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+rows+'</sheetData>'+(this.m.length?'<mergeCells count="'+this.m.length+'">'+this.m.map(x=>'<mergeCell ref="'+x+'"/>').join('')+'</mergeCells>':'')+this.cf.join('')+'</worksheet>'}}
+function crc(b){let t=crc.t,c,r=-1;if(!t){t=crc.t=[];for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}for(let i=0;i<b.length;i++)r=t[(r^b[i])&255]^(r>>>8);return(r^-1)>>>0}
+function zip(files){const en=new TextEncoder(),parts=[],cen=[];let off=0;
+ files.forEach(f=>{const nm=en.encode(f.n),d=en.encode(f.d),cr=crc(d),h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(12,0x21,true);h.setUint32(14,cr,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nm.length,true);
+  parts.push(new Uint8Array(h.buffer),nm,d);
+  const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(14,0x21,true);c.setUint32(16,cr,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+  cen.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+d.length});
+ const cl=cen.reduce((a,x)=>a+x.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cl,true);e.setUint32(16,off,true);
+ return new Blob(parts.concat(cen,[new Uint8Array(e.buffer)]),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const serial=t=>(t-new Date(t).getTimezoneOffset()*6e4)/864e5+25569;
+function build(S,dateStr,by){
+ const dd=dateStr?new Date(dateStr+'T00:00:00'):new Date(new Date().setHours(0,0,0,0)),dk=dd.toDateString(),isToday=dk===new Date().toDateString();
+ const os=S.orders.filter(o=>new Date(o.t).toDateString()===dk).sort((a,b)=>a.t-b.t),ok=o=>o.st==='ok';
+ const exps=((S.own&&S.own.exp)||[]).filter(e=>new Date(e.t).toDateString()===dk).map(e=>({n:e.c+(e.n?' · '+e.n:''),a:e.a,by:'Other'})).concat(((S.cash&&S.cash.log)||[]).filter(l=>l.k==='exp'&&new Date(l.t).toDateString()===dk).map(l=>({n:l.n||'Cash drawer expense',a:l.a,by:'Cash'})));
+ const added=R2(((S.cash&&S.cash.log)||[]).filter(l=>l.k==='add'&&new Date(l.t).toDateString()===dk).reduce((a,l)=>a+l.a,0));
+ const biz=(S.biz&&S.biz.name)||'Patty Burps';
+ // ---- Menu & Prices
+ const M=new Sh('Menu & Prices');M.w=[30,16,14,12];
+ M.p(0,0,biz.toUpperCase()+' — MENU & PRICES',ST.title);M.p(1,0,'Taken from the POS Items list when this file was made. Yellow cells are yours to edit.',ST.note);
+ ['Item','Selling price (₱)','Cost (₱)','Margin'].forEach((h,i)=>M.p(3,i,h,ST.hdr));
+ S.items.forEach((p,i)=>{const r=4+i;M.p(r,0,p.name,ST.txt);M.p(r,1,R2(p.price),ST.inP);M.p(r,2,R2(p.cost),ST.inP);const mg=p.price?(p.price-p.cost)/p.price:0;M.p(r,3,mg,ST.pct,'IF(B'+(r+1)+'=0,0,(B'+(r+1)+'-C'+(r+1)+')/B'+(r+1)+')')});
+ const rr=4+S.items.length+1;M.p(rr,0,'Commission rate (set 0% if none)',ST.bold);M.p(rr,1,0.10,ST.inPct);M.p(rr+1,0,'Default 10% (from your pop-up sheet), charged on net sales. Change it to what you really pay.',ST.note);
+ const RATE="'Menu & Prices'!$B$"+(rr+1);
+ // ---- Order Log
+ const L=new Sh('Order Log');L.w=[12,16,12,44,7,12,11,11,12,12,12,12,14,11];L.fz=4;
+ L.p(0,0,biz.toUpperCase()+' — ORDER LOG',ST.title);L.p(1,0,'One row per receipt for '+dd.toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'})+'. Refunded orders are listed but not counted.',ST.note);
+ ['Receipt','Time','Cashier','Items','Cups','Subtotal','Discount','Delivery','Total','Cash','GCash','Card','GCash ref','Status'].forEach((h,i)=>L.p(3,i,h,ST.hdr));
+ os.forEach((o,i)=>{const r=4+i,cups=o.lines.reduce((a,l)=>a+l.q,0),txt=o.lines.map(l=>l.q+'× '+l.n+(l.o?' ('+l.o+')':'')).join(', ');
+  L.p(r,0,o.no,ST.txt);L.p(r,1,serial(o.t),ST.tm);L.p(r,2,o.by||'',ST.txt);L.p(r,3,txt,ST.txt);L.p(r,4,cups,ST.int);L.p(r,5,R2(o.sub),ST.peso);L.p(r,6,R2(o.d),ST.peso);L.p(r,7,R2(o.del),ST.peso);L.p(r,8,R2(o.total),ST.peso);
+  L.p(r,9,R2(o.pay.cash),ST.peso);L.p(r,10,R2(o.pay.gcash),ST.peso);L.p(r,11,R2(o.pay.card),ST.peso);L.p(r,12,o.ref||'',ST.txt);L.p(r,13,ok(o)?'Paid':'Refunded',ST.txt)});
+ // ---- Items Sold
+ const I=new Sh('Items Sold');I.w=[12,16,30,7,13,13,11];I.fz=4;
+ I.p(0,0,biz.toUpperCase()+' — ITEMS SOLD',ST.title);I.p(1,0,'One row per item on each receipt.',ST.note);
+ ['Receipt','Time','Item','Qty','Line total','Item cost','Status'].forEach((h,i)=>I.p(3,i,h,ST.hdr));
+ let ir=4;const lines=[];os.forEach(o=>o.lines.forEach(l=>{I.p(ir,0,o.no,ST.txt);I.p(ir,1,serial(o.t),ST.tm);I.p(ir,2,l.n,ST.txt);I.p(ir,3,l.q,ST.int);I.p(ir,4,R2(l.t),ST.peso);I.p(ir,5,R2(l.c),ST.peso);I.p(ir,6,ok(o)?'Paid':'Refunded',ST.txt);lines.push({n:l.n,q:l.q,t:l.t,c:l.c,ok:ok(o)});ir++}));
+ // ---- Summary (computed values for cached results)
+ const O=os.filter(ok),sum=(a,f)=>R2(a.reduce((x,y)=>x+f(y),0));
+ const v={orders:O.length,cups:sum(O,o=>o.lines.reduce((a,l)=>a+l.q,0)),gross:sum(O,o=>o.sub+o.del),disc:sum(O,o=>o.d),net:sum(O,o=>o.total),cash:sum(O,o=>o.pay.cash),gc:sum(O,o=>o.pay.gcash),card:sum(O,o=>o.pay.card),ref:sum(os.filter(o=>!ok(o)),o=>o.total),cogs:sum(lines.filter(l=>l.ok),l=>l.c)};
+ v.un=R2(v.net-v.cash-v.gc-v.card);
+ const nE=Math.max(14,exps.length+4),eF=9,eL=8+nE,expT=sum(exps,e=>e.a),expCash=sum(exps.filter(e=>e.by==='Cash'),e=>e.a);
+ const startV=isToday?R2(S.cash.start):null,exp0=R2((startV||0)+added+v.cash-expCash);
+ const SM=new Sh('Sales Summary');SM.w=[40,18,3,30,14,12,14];SM.grid=0;
+ const OL=c=>"'Order Log'!$"+c+"$5:$"+c+"$500",IS=c=>"'Items Sold'!$"+c+"$5:$"+c+"$500";
+ const sec=(r,t,c2)=>{SM.p(r,c2?3:0,t,ST.sec);SM.p(r,c2?4:1,'',ST.sec);if(c2){SM.p(r,5,'',ST.sec);if(c2>1)SM.p(r,6,'',ST.sec)}};
+ const row=(r,t,val,s,f,b)=>{SM.p(r,0,t,b?ST.bold:ST.def);SM.p(r,1,val,s,f)};
+ SM.p(0,0,biz.toUpperCase()+' — END-OF-DAY CLOSING REPORT',ST.title);
+ SM.p(1,0,'Yellow cells = you type. Everything else calculates from the Order Log. Goal: the RESULT line at the bottom says BALANCED.',ST.note);
+ SM.p(3,0,'Date',ST.bold);SM.p(3,1,serial(dd.getTime()),ST.inD);SM.p(4,0,'Prepared by',ST.bold);SM.p(4,1,by||'',ST.inT);
+ sec(6,'SALES');
+ row(7,'Orders',v.orders,ST.int,'COUNTIFS('+OL('N')+',"Paid")');
+ row(8,'Cups sold',v.cups,ST.int,'SUMIFS('+OL('E')+','+OL('N')+',"Paid")');
+ row(9,'Gross sales (before discounts, incl. delivery)',v.gross,ST.peso,'SUMIFS('+OL('F')+','+OL('N')+',"Paid")+SUMIFS('+OL('H')+','+OL('N')+',"Paid")');
+ row(10,'− Discounts',v.disc,ST.peso,'SUMIFS('+OL('G')+','+OL('N')+',"Paid")');
+ row(11,'Net sales (what customers paid)',v.net,ST.bP,'SUMIFS('+OL('I')+','+OL('N')+',"Paid")',1);
+ row(12,'   Cash',v.cash,ST.peso,'SUMIFS('+OL('J')+','+OL('N')+',"Paid")');
+ row(13,'   GCash',v.gc,ST.peso,'SUMIFS('+OL('K')+','+OL('N')+',"Paid")');
+ row(14,'   Card',v.card,ST.peso,'SUMIFS('+OL('L')+','+OL('N')+',"Paid")');
+ row(15,'   Not matched to a payment (should be 0)',v.un,ST.peso,'B12-B13-B14-B15');
+ row(16,'Refunded orders (not counted above)',v.ref,ST.peso,'SUMIFS('+OL('I')+','+OL('N')+',"Refunded")');
+ sec(18,'COSTS & TAKE-HOME');
+ const rate=0.10,comm=R2(v.net*rate),left1=R2(v.net-comm-expT),left2=R2(left1-v.cogs);
+ SM.p(19,0,'Commission ('+Math.round(rate*100)+'% of net sales)',ST.def,'"Commission ("&TEXT('+RATE+',"0%")&" of net sales)"');SM.p(19,1,comm,ST.peso,'B12*'+RATE);
+ row(20,'Expenses today',expT,ST.peso,'SUM(E'+eF+':E'+eL+')');
+ row(21,'Left after commission & expenses',left1,ST.bP,'B12-B20-B21',1);
+ row(22,'Item costs (from your Menu costs)',v.cogs,ST.peso,'SUMIFS('+IS('F')+','+IS('G')+',"Paid")');
+ row(23,'Left after everything',left2,ST.bP,'B22-B23',1);
+ sec(25,'CASH DRAWER CHECK');
+ row(26,'Starting float (cash in drawer at open)',startV,ST.inP);
+ row(27,'+ Cash added during the day',added,ST.inP);
+ row(28,'+ Cash sales',v.cash,ST.peso,'B13');
+ row(29,'− Expenses paid in cash',expCash,ST.peso,'SUMIFS(E'+eF+':E'+eL+',F'+eF+':F'+eL+',"Cash")');
+ const ex=R2((startV||0)+added+v.cash-expCash);
+ row(30,'Expected cash in drawer',ex,ST.bP,'B27+B28+B29-B30',1);
+ row(31,'Counted cash (what is really there)',null,ST.inP);
+ row(32,'Difference (counted − expected)','',ST.peso,'IF(B32="","",B32-B31)');
+ sec(34,'GCASH CHECK');
+ row(35,'Expected GCash (from receipts)',v.gc,ST.peso,'B14');
+ row(36,'Received per GCash app today',null,ST.inP);
+ row(37,'Difference (app − expected)','',ST.peso,'IF(B37="","",B37-B36)');
+ SM.p(39,0,'RESULT',ST.bold);
+ const resV=v.un!==0?'CHECK RECEIPTS: some money is not matched to cash, GCash or card':'Enter counted cash and GCash received to finish';
+ SM.p(39,1,resV,ST.res,'IF(B16<>0,"CHECK RECEIPTS: some money is not matched to cash, GCash or card",IF(AND(B32="",B37=""),"Enter counted cash and GCash received to finish",IF(AND(N(B33)=0,N(B38)=0),"✓ BALANCED — good day, rest easy","CHECK: cash off by "&TEXT(N(B33),"#,##0.00")&" / GCash off by "&TEXT(N(B38),"#,##0.00"))))');
+ for(let c=2;c<7;c++)SM.p(39,c,'',ST.res);SM.m.push('B40:G40');SM.h={39:28};
+ SM.cf.push('<conditionalFormatting sqref="B40:G40"><cfRule type="expression" dxfId="0" priority="1"><formula>LEFT($B$40,1)="✓"</formula></cfRule><cfRule type="expression" dxfId="1" priority="2"><formula>LEFT($B$40,5)="CHECK"</formula></cfRule></conditionalFormatting>');
+ SM.p(41,0,'Cash added, expenses and starting float come from the POS Cash Drawer. Commission rate is on the Menu & Prices tab. Item costs use the cost set on each menu item.',ST.note);
+ // expenses table
+ sec(6,'EXPENSES TODAY',1);SM.p(7,3,'Item',ST.hdr);SM.p(7,4,'Amount',ST.hdr);SM.p(7,5,'Paid by',ST.hdr);
+ for(let i=0;i<nE;i++){const r=eF-1+i,e=exps[i];SM.p(r,3,e?e.n:null,ST.inT);SM.p(r,4,e?R2(e.a):null,ST.inP);SM.p(r,5,e?e.by:null,ST.inT)}
+ SM.p(eL,3,'Type "Cash" in Paid by for money taken from the drawer.',ST.note);
+ // by item
+ const names=[];S.items.forEach(p=>names.push(p.name));lines.forEach(l=>{if(!names.includes(l.n))names.push(l.n)});
+ const b0=eL+3;sec(b0,'BY ITEM',2);SM.p(b0+1,3,'Item',ST.hdr);SM.p(b0+1,4,'Cups',ST.hdr);SM.p(b0+1,5,'Sales',ST.hdr);
+ names.forEach((n,i)=>{const r=b0+2+i,l=lines.filter(x=>x.ok&&x.n===n);SM.p(r,3,n,ST.txt);SM.p(r,4,l.reduce((a,x)=>a+x.q,0),ST.int,'SUMIFS('+IS('D')+','+IS('C')+',D'+(r+1)+','+IS('G')+',"Paid")');SM.p(r,5,sum(l,x=>x.t),ST.peso,'SUMIFS('+IS('E')+','+IS('C')+',D'+(r+1)+','+IS('G')+',"Paid")')});
+ const t0=b0+2+names.length,f0=b0+3,f1=b0+2+names.length;
+ SM.p(t0,3,'Total',ST.bold);SM.p(t0,4,v.cups,ST.int,'SUM(E'+f0+':E'+f1+')');SM.p(t0,5,sum(lines.filter(l=>l.ok),l=>l.t),ST.bP,'SUM(F'+f0+':F'+f1+')');
+ SM.p(t0+1,3,'Item sales are before order-level promos and delivery, so they can be slightly above Net sales.',ST.note);
+ // ---- package
+ const sh=[SM,L,I,M],ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sh.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>';
+ const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ const files=[{n:'[Content_Types].xml',d:ct},{n:'_rels/.rels',d:H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+ {n:'xl/workbook.xml',d:H+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sh.map((s,i)=>'<sheet name="'+X(s.n)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>'},
+ {n:'xl/_rels/workbook.xml.rels',d:H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sh.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sh.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+ {n:'xl/styles.xml',d:stylesXml()}].concat(sh.map((s,i)=>({n:'xl/worksheets/sheet'+(i+1)+'.xml',d:s.xml()})));
+ return zip(files)}
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+function go(){const i=document.getElementById('xld'),ds=(i&&i.value)||today();
+ const b=build(S,ds,(typeof me==='function'&&me().name)||''),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='patty-burps-closing-'+ds+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);toast('Excel report saved for '+ds)}
+return{build,go,today}})();
+document.addEventListener('click',e=>{if(e.target.closest('[data-xl]'))XL.go()});
+
 OW.rs=function(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>OW.rsText(r.result);r.readAsText(f)};i.click()};
 OW.rsText=function(t){try{const d=JSON.parse(t);if(!Array.isArray(d.items)||!Array.isArray(d.orders)||!d.biz)throw 0;if(!confirm('Replace everything on this device with this backup?'))return;S=d;save();OW.init();render();toast('Backup restored.')}catch(e){toast('That is not a Patty Burps backup file.')}};
 const GD={i:0,
@@ -580,7 +718,47 @@ const SYNC=window.SYNC={st:{busy:0,err:'',last:0,sent:0},tm:0,
     if(sp[k]===undefined||(sp[k]===lo&&cl!==lo)){if(+r.price>0){p.name=r.name;p.price=+r.price;p.on=r.active!==false?1:0}sp[k]=ph(p);delete im[k];ch=1;SYNC.adopted=1}
     else if(cl!==lo||+r.stock!==+p.stock){delete im[k];ch=1}});
    if(ch)save()}catch(e){}},
- async run(){if(!this.ready()||!S.own.sbg||this.st.busy||isOff())return;await this.rec();if(!this.pend()&&!this.ipend()&&!this.epend()&&!this.lpend())return;this.st.busy=1;let n=0;
+ cst:{err:'',last:0,busy:0,t:0,ask:0},
+ cfgParts(){const b=Object.assign({},S.biz),qr=b.qr||'';delete b.qr;
+  return{config:{v:1,biz:b,pay:S.pay,groups:S.groups,promos:S.promos,ings:S.ings,items:S.items.map(p=>({sk:slug(p),name:p.name,cat:p.cat,price:p.price,dp:p.dp,cost:p.cost,stock:p.stock,low:p.low,code:p.code,groups:p.groups,rec:p.rec,img:(PIC[p.img]&&!p.pic)?p.img:'',on:p.on?1:0})),counter:{seq:S.seq,id:S.id}},qr:{qr}}},
+ cfgTxt(){const c=this.cst;return !this.ready()?'Sign in under Online to save settings to the cloud':c.err?c.err:c.ask?'Waiting for your choice':c.last?'Saved to cloud at '+new Date(c.last).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'Waiting to save'},
+ async cfgRun(){const st=this.cst;if(st.busy||isOff()||Date.now()-st.t<20000)return;st.busy=1;st.t=Date.now();
+  try{
+   if(!S.own.cfgOk){const r=await this.f('/rest/v1/pos_config?key=eq.config&select=value,updated_at');
+    if(r&&r.length&&!S.orders.length&&!S.seq){if(!st.ask){st.ask=1;this.cfgAsk(r[0])}st.busy=0;return}
+    S.own.cfgOk=1;save()}
+   const P=this.cfgParts(),h=S.own.cfgh||(S.own.cfgh={}),rows=[],now=new Date().toISOString();
+   for(const k in P){const j=JSON.stringify(P[k]),x=hs(j)+':'+j.length;if(h[k]!==x)rows.push({key:k,value:P[k],updated_at:now,_x:x})}
+   if(rows.length){await this.f('/rest/v1/pos_config?on_conflict=key',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.map(r=>({key:r.key,value:r.value,updated_at:r.updated_at})))});rows.forEach(r=>h[r.key]=r._x);save()}
+   st.err='';st.last=Date.now()}
+  catch(e){st.err=(e.status===404||/pos_config|PGRST205/.test(e.message||''))?'Run patty_config_setup.sql in Supabase first.':(e.message||'Could not save settings to the cloud.')}
+  st.busy=0},
+ cfgAsk(row){const d=row&&row.updated_at?new Date(row.updated_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'earlier';
+  dlg(`<h2>Saved copy found in the cloud</h2><p class="mut">This computer is new or empty, and the cloud has a copy of your settings, items, recipes, order counter and past sales (last saved ${d}). Restore them here?</p><button class="pri" data-cf="restore" style="width:100%;margin-bottom:8px">Restore from cloud</button><button data-cf="skip" style="width:100%;margin-bottom:8px">Start fresh here (replaces the cloud copy)</button>`)},
+ async cfgRestore(){const st=this.cst;
+  try{toast('Restoring from the cloud…');
+   const r=await this.f('/rest/v1/pos_config?select=key,value'),m={};(r||[]).forEach(x=>m[x.key]=x.value);const c=m.config;
+   if(!c){toast('Nothing saved in the cloud yet.');return}
+   if(c.biz)S.biz=Object.assign({},S.biz,c.biz);if(m.qr&&m.qr.qr)S.biz.qr=m.qr.qr;
+   if(c.pay)S.pay=c.pay;if(Array.isArray(c.groups))S.groups=c.groups;if(Array.isArray(c.promos))S.promos=c.promos;if(Array.isArray(c.ings))S.ings=c.ings;
+   (c.items||[]).forEach(o=>{const p=S.items.find(x=>slug(x)===o.sk);
+    if(p){['name','cat','price','dp','cost','stock','low','code','groups','rec','on'].forEach(k=>{if(o[k]!==undefined)p[k]=o[k]})}
+    else S.items.push({id:++S.id,sk:o.sk,name:o.name,cat:o.cat,price:o.price,dp:o.dp,cost:o.cost,stock:o.stock,low:o.low,code:o.code||'',groups:o.groups||'',rec:o.rec||'',img:o.img||'',on:o.on})});
+   const have=new Set(S.orders.map(o=>o.no));let off=0,add=0;
+   for(let pg=0;pg<30;pg++){const rows=await this.f('/rest/v1/orders?select=no,t,by,total,status,lines,meta,web_id&source=eq.pos&order=t.desc&limit=1000&offset='+off);if(!rows||!rows.length)break;
+    rows.forEach(r=>{if(have.has(r.no))return;have.add(r.no);const mt=r.meta||{};
+     S.orders.push({id:++S.id,no:r.no,t:Date.parse(r.t),by:r.by||'',svc:mt.svc||'in',tbl:mt.tbl||'',cust:mt.cust||'',note:mt.note||'',sub:+mt.sub||0,d:+mt.d||0,pn:mt.pn||'',del:+mt.del||0,total:+r.total,pay:mt.pay||{cash:+r.total,gcash:0,card:0},ch:+mt.ch||0,st:r.status,lines:r.lines||[],sy:Date.now(),sst:r.status,ref:mt.ref||undefined,web:r.web_id||undefined,wl:r.web_id?1:undefined,reason:r.status!=='ok'?'(restored from cloud)':undefined});add++});
+    if(rows.length<1000)break;off+=1000}
+   S.orders.sort((a,b)=>b.t-a.t);
+   const ex=await this.f('/rest/v1/expenses?select=id,t,amount,cat,note,drawer,by&deleted=eq.false&limit=2000');
+   const ot=new Set((S.own.exp||[]).map(e=>e.t)),dt=new Set(S.cash.log.filter(l=>l.k==='exp').map(l=>l.t));
+   (ex||[]).forEach(e=>{const t=Date.parse(e.t);if(e.drawer){if(!dt.has(t))S.cash.log.push({t,k:'exp',a:+e.amount||0,n:e.note||'',by:e.by||''})}else if(!ot.has(t))S.own.exp.push({t,c:e.cat||'',a:+e.amount||0,n:e.note||''})});
+   S.own.exp.sort((a,b)=>b.t-a.t);S.cash.log.sort((a,b)=>b.t-a.t);
+   const mx=S.orders.reduce((a,o)=>Math.max(a,+(String(o.no).match(/\d+/)||[0])[0]),0);
+   S.seq=Math.max(S.seq||0,(c.counter&&c.counter.seq)||0,mx);S.id=Math.max(S.id,(c.counter&&c.counter.id)||0);
+   S.own.cfgOk=1;st.ask=0;st.err='';save();try{A.x()}catch(e){}render();toast('Restored settings, items'+(add?', '+add+' past sales':'')+'.')}
+  catch(e){toast('Could not restore: '+(e.message||'no connection'))}},
+ async run(){if(!this.ready()||!S.own.sbg||this.st.busy||isOff())return;await this.rec();await this.cfgRun();if(!this.pend()&&!this.ipend()&&!this.epend()&&!this.lpend())return;this.st.busy=1;let n=0;
   try{const os=S.orders.filter(unsent);
    for(let i=0;i<os.length;i+=50){const b=os.slice(i,i+50);
     await this.f('/rest/v1/orders?on_conflict=no',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(b.map(oRow))});
@@ -597,6 +775,11 @@ const SYNC=window.SYNC={st:{busy:0,err:'',last:0,sent:0},tm:0,
    this.st.err='';this.st.last=Date.now();this.st.sent+=n}
   catch(e){this.st.err=e.message||'Could not reach the cloud.'}
   this.st.busy=0;stChip()}};
+const hs=s=>{let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-cf]');if(!b)return;const k=b.dataset.cf;
+ if(k==='skip'){S.own.cfgOk=1;SYNC.cst.ask=0;save();try{A.x()}catch(_){}SYNC.cst.t=0;SYNC.kick();toast('Starting fresh here. Settings will be saved to the cloud.')}
+ else if(k==='restore'){SYNC.cfgRestore()}
+ else if(k==='manual'){if(!SYNC.ready())return toast('Sign in under Online first.');if(confirm('Replace the settings and items on this computer with the cloud copy? Past sales missing here are added too.'))SYNC.cfgRestore()}});
 const cloudOn=()=>SYNC.ready();
 addEventListener('online',()=>SYNC.kick());setInterval(()=>SYNC.kick(),3e5);setTimeout(()=>SYNC.kick(),5e3);
 /* ===== Website orders (read-only mirror of Supabase "inquiries") ===== */
@@ -667,10 +850,12 @@ ck(i,b){if(b.dataset.k){S.ck=S.ck||{};S.ck[b.dataset.k]=1;save()}tab=i;fq='';ren
   save();tab='reg';render();if(q.svc==='delivery'&&!(+q.fee>0))toast('Heads up: no delivery fee was entered for this order. The total has no delivery charge.')},
  oacc(i){const o=S.online.splice(+i,1)[0];reset();cart=o.cart.map(l=>({...l,u2:++uid}));ctx.svc='del';ctx.cust=o.cust;save();tab='reg';render()},
  orej(i){S.online.splice(+i,1);save();render()},
+ nmfill(i){ctx.cust=i;regCart()},
+ nmfill2(i){const e=$('#pcust');if(e)e.value=i},
  pay(){if(S.closed===day(Date.now())){toast('The day is closed. A manager can reopen it in Cash Drawer.');return}const t=calc();if(!t.total&&!cart.length)return;const K=['cash','gcash','card'].filter(k=>S.pay[k]);
-  dlg(`<h2>Take payment</h2><p class="tot">${peso(t.total)}</p>${K.map(k=>`<div class="row"><label style="flex:1">${k==='gcash'?'GCash':k[0].toUpperCase()+k.slice(1)}<input id="p_${k}" inputmode="decimal" placeholder="0.00"></label><button class="sm" data-a="exact" data-i="${k}">Exact</button></div>`).join('')}${S.pay.gcash?'<label class="fld"><span>GCash reference no. (optional)</span><input id="gref" placeholder="From the GCash confirmation"></label>':''}${S.biz.qr&&S.pay.gcash?'<button class="sm" data-a="qr">📱 Show GCash QR</button><div id="qrb"></div>':''}<p id="pst" class="mut"></p><div class="g2"><button data-a="x">Cancel</button><button class="pri" style="font-size:16px" id="pd" disabled>Complete sale</button></div>`);
+  dlg(`<h2>Take payment</h2><p class="tot">${peso(t.total)}</p><label class="fld"><span>Customer name (optional)</span><input id="pcust" list="cl2" value="${esc(ctx.cust||'')}" placeholder="Name, to track repeat customers" autocomplete="off"></label><datalist id="cl2">${custL().map(c=>`<option value="${esc(c.nm)}">`).join('')}</datalist><div class="chips" style="margin:0 0 8px">${custL().slice(0,5).map(c=>`<button class="sm" data-a="nmfill2" data-i="${esc(c.nm)}">${esc(c.nm)}</button>`).join('')}</div>${K.map(k=>`<div class="row"><label style="flex:1">${k==='gcash'?'GCash':k[0].toUpperCase()+k.slice(1)}<input id="p_${k}" inputmode="decimal" placeholder="0.00"></label><button class="sm" data-a="exact" data-i="${k}">Exact</button></div>`).join('')}${S.pay.gcash?'<label class="fld"><span>GCash reference no. (optional)</span><input id="gref" placeholder="From the GCash confirmation"></label>':''}${S.biz.qr&&S.pay.gcash?'<button class="sm" data-a="qr">📱 Show GCash QR</button><div id="qrb"></div>':''}<p id="pst" class="mut"></p><div class="g2"><button data-a="x">Cancel</button><button class="pri" style="font-size:16px" id="pd" disabled>Complete sale</button></div>`);
   const v=k=>$('#p_'+k)?Math.max(0,num($('#p_'+k).value)):0,upd=()=>{const pd=['cash','gcash','card'].reduce((a,k)=>a+v(k),0),rem=r2(t.total-pd),ch=rem<0?-rem:0,ok=rem<=0&&ch<=v('cash');$('#pst').textContent=rem>0?'Still due '+peso(rem):ok?'Change '+peso(ch):'Change must come from cash.';$('#pd').disabled=!ok;csGC=v('gcash');csPaint()};
-  payUpd=()=>{upd()};payT=t;$('#dlg').oninput=upd;$('#pd').onclick=()=>done(t,{cash:v('cash'),gcash:v('gcash'),card:v('card')});if(ctx.web&&ctx.wpaid&&$('#p_gcash')){$('#p_gcash').value=t.total;if($('#gref'))$('#gref').value='Website GCash'}upd()},
+  payUpd=()=>{upd()};payT=t;$('#dlg').oninput=upd;$('#pd').onclick=()=>{const e=$('#pcust');if(e)ctx.cust=e.value.trim();done(t,{cash:v('cash'),gcash:v('gcash'),card:v('card')})};if(ctx.web&&ctx.wpaid&&$('#p_gcash')){$('#p_gcash').value=t.total;if($('#gref'))$('#gref').value='Website GCash'}upd()},
  exact(k){const t=payT,o=['cash','gcash','card'].filter(x=>x!==k).reduce((a,x)=>a+($('#p_'+x)?Math.max(0,num($('#p_'+x).value)):0),0);$('#p_'+k).value=Math.max(0,r2(t.total-o));payUpd()},
  view(i){rcpt(S.orders.find(o=>o.id==i))},
  refund(i){const o=S.orders.find(o=>o.id==i);dlg(`<h2>Refund ${o.no}</h2><p>${peso(o.total)} will be returned and stock restored.</p><input id="rs" placeholder="Reason (required)"><div class="g2" style="margin-top:12px"><button data-a="x">Cancel</button><button class="pri" style="font-size:16px" data-a="dorf" data-i="${i}">Refund</button></div>`)},
@@ -699,7 +884,10 @@ async clrs(i,b){if(!SYNC.ready()||isOff())return toast('Connect to the cloud fir
  b.textContent='Clearing…';
  try{await SYNC.f('/rest/v1/orders?no=not.is.null',{method:'DELETE'});await SYNC.f('/rest/v1/expenses?id=not.is.null',{method:'DELETE'})}catch(e){b.dataset.s='';b.textContent='Could not clear the cloud ('+(e.message||'error')+'). Nothing was changed here.';return}
  S.orders=[];S.seq=0;S.parked=[];S.online=[];S.shifts=[];S.adj=[];S.cash.log=[];S.own.exp=[];S.own.sbe='[]';save();reset();tab='ov';render();toast('All history cleared. Items and settings kept.')},
-wipe(i,b){if(b.dataset.s!=='1'){b.dataset.s='1';b.textContent='Tap again to erase everything';return}S=seed();save();reset();tab='ov';render();toast('Sample data restored.')},
+async wipe(i,b){if(b.dataset.s!=='1'){b.dataset.s='1';b.textContent='Tap again to erase everything';return}
+ const keep=S.own&&S.own.sb,had=S.own&&S.own.sbg;
+ if(SYNC.ready()&&!isOff()){b.textContent='Erasing…';try{await SYNC.f('/rest/v1/orders?no=not.is.null',{method:'DELETE'});await SYNC.f('/rest/v1/expenses?id=not.is.null',{method:'DELETE'})}catch(e){b.dataset.s='';b.textContent='Could not clear the cloud ('+(e.message||'error')+'). Nothing was changed here.';return}}
+ S=seed();OW.init();if(keep){S.own.sb=keep;if(had)S.own.sbg=1}save();reset();tab='ov';render();toast('Everything erased. Fresh start, no sample sales.')},
  login(){const s=S.staff.find(s=>s.id==$('#lu').value);if(s.pin!==$('#lp').value)return toast('Wrong passcode.');S.me=s.id;save();A.x();tab='reg';render()}};
 let pendId,payUpd,payT;
 function cl(k){const a=num($('#ca').value),n=$('#cn').value.trim();if(a<=0)return toast('Enter an amount.');if(k==='exp'&&!n)return toast('Add a reason for the expense.');S.cash.log.unshift({t:Date.now(),k,a,n:n||'Cash added',by:me().name});save();render()}

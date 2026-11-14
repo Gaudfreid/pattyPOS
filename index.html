@@ -690,7 +690,7 @@ const SYNC=window.SYNC={st:{busy:0,err:'',last:0,sent:0},tm:0,
  epend(){return (S.own.sbe||'')!==this.eh()},
  check(){const w=[],seen={},known={banana:'Banana Pudding',mango:'Mango Coco Cloud',apple:'Apple Crisp',strawberry:'Strawberry',pistachio:'Pistachio Banana'};
   S.items.forEach(p=>{const k=slug(p);if(seen[k])w.push('Two items share the code “'+k+'”: '+p.name);seen[k]=1;if(known[k]&&known[k]!==p.name)w.push('“'+p.name+'” should be named “'+known[k]+'” to match the website and phone app.')});return w},
- async f(path,o){o=o||{};const b=this.cfg();const go=()=>fetch(b.url.replace(/\/$/,'')+path,{method:o.method||'GET',headers:Object.assign({apikey:b.key,'Content-Type':'application/json',Authorization:'Bearer '+(PAU?PAU.access_token:b.key)},o.headers||{}),body:o.body});
+ async f(path,o){o=o||{};const b=this.cfg();const go=()=>fetch(b.url.replace(/\/$/,'')+path,{method:o.method||'GET',headers:Object.assign({apikey:b.key,'Content-Type':'application/json',Authorization:'Bearer '+(PAU?PAU.access_token:b.key)},o.headers||{}),body:o.body,signal:(typeof AbortSignal!=='undefined'&&AbortSignal.timeout)?AbortSignal.timeout(20000):undefined});
   let r=await go();if(r.status===401&&await this.refresh())r=await go();
   if(!r.ok){let m='';try{m=(await r.text()).slice(0,140)}catch(e){}throw Object.assign(new Error(r.status===401?'Please sign in again.':'HTTP '+r.status+(m?': '+m:'')),{status:r.status})}
   const t=await r.text();return t?JSON.parse(t):null},
@@ -758,21 +758,22 @@ const SYNC=window.SYNC={st:{busy:0,err:'',last:0,sent:0},tm:0,
    S.seq=Math.max(S.seq||0,(c.counter&&c.counter.seq)||0,mx);S.id=Math.max(S.id,(c.counter&&c.counter.id)||0);
    S.own.cfgOk=1;st.ask=0;st.err='';save();try{A.x()}catch(e){}render();toast('Restored settings, items'+(add?', '+add+' past sales':'')+'.')}
   catch(e){toast('Could not restore: '+(e.message||'no connection'))}},
- async run(){if(!this.ready()||!S.own.sbg||this.st.busy||isOff())return;await this.rec();await this.cfgRun();if(!this.pend()&&!this.ipend()&&!this.epend()&&!this.lpend())return;this.st.busy=1;let n=0;
+ async run(){if(this.st.busy&&Date.now()-(this.st.bt||0)>90000)this.st.busy=0;if(!this.ready()||!S.own.sbg||this.st.busy||isOff())return;await this.rec();await this.cfgRun();if(!this.pend()&&!this.ipend()&&!this.epend()&&!this.lpend())return;this.st.busy=1;this.st.bt=Date.now();let n=0,se='';
+  /* stock goes first and on its own, so a problem with sales can never hold it back */
+  try{const m=S.own.sbi||(S.own.sbi={}),its=S.items.filter(p=>m[slug(p)]!==ih(p));
+   if(its.length){await this.f('/rest/v1/items?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(its.map(iRow))});its.forEach(p=>{m[slug(p)]=ih(p);(S.own.sbp||(S.own.sbp={}))[slug(p)]=ph(p)});save()}}catch(e){se=e.message||'Could not send stock.'}
   try{const os=S.orders.filter(unsent);
    for(let i=0;i<os.length;i+=50){const b=os.slice(i,i+50);
     await this.f('/rest/v1/orders?on_conflict=no',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(b.map(oRow))});
     const now=Date.now();b.forEach(o=>{o.sy=now;o.sst=o.st});n+=b.length;save()}
    const ls=S.orders.filter(o=>o.web&&!o.wl&&!o.demo);
    for(const o of ls){await this.f('/rest/v1/inquiries?id=eq.'+encodeURIComponent(o.web)+'&st=neq.cancelled',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(Object.assign({pos_no:o.no,pos_at:new Date().toISOString()},o.svc==='out'?{st:'done'}:{}))});o.wl=1;save()}
-   const m=S.own.sbi||(S.own.sbi={}),its=S.items.filter(p=>m[slug(p)]!==ih(p));
-   if(its.length){await this.f('/rest/v1/items?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(its.map(iRow))});its.forEach(p=>{m[slug(p)]=ih(p);(S.own.sbp||(S.own.sbp={}))[slug(p)]=ph(p)});save()}
    if(this.epend()){const rows=this.eRows();
     if(rows.length)await this.f('/rest/v1/expenses?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
     const cut=new Date(Date.now()-90*864e5).toISOString(),have=await this.f('/rest/v1/expenses?select=id&deleted=eq.false&t=gte.'+encodeURIComponent(cut)),keep=new Set(rows.map(r=>r.id)),gone=(have||[]).map(r=>r.id).filter(id=>!keep.has(id));
     if(gone.length)await this.f('/rest/v1/expenses?id=in.('+gone.map(encodeURIComponent).join(',')+')',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({deleted:true})});
     S.own.sbe=this.eh();save()}
-   this.st.err='';this.st.last=Date.now();this.st.sent+=n}
+   if(se)throw new Error(se);this.st.err='';this.st.last=Date.now();this.st.sent+=n}
   catch(e){this.st.err=e.message||'Could not reach the cloud.'}
   this.st.busy=0;stChip()}};
 const hs=s=>{let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h};
@@ -781,7 +782,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-cf]');if(!
  else if(k==='restore'){SYNC.cfgRestore()}
  else if(k==='manual'){if(!SYNC.ready())return toast('Sign in under Online first.');if(confirm('Replace the settings and items on this computer with the cloud copy? Past sales missing here are added too.'))SYNC.cfgRestore()}});
 const cloudOn=()=>SYNC.ready();
-addEventListener('online',()=>SYNC.kick());setInterval(()=>SYNC.kick(),3e5);setTimeout(()=>SYNC.kick(),5e3);
+addEventListener('online',()=>SYNC.kick());addEventListener('focus',()=>SYNC.kick());document.addEventListener('visibilitychange',()=>{if(!document.hidden)SYNC.kick()});setInterval(()=>SYNC.kick(),3e4);setTimeout(()=>SYNC.kick(),5e3);
 /* ===== Website orders (read-only mirror of Supabase "inquiries") ===== */
 const beep=()=>{try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.value=.08;o.start();o.stop(a.currentTime+.18)}catch(e){}};
 const wPaid=q=>['paid','booked','ready','out','done'].includes(q.st);
@@ -795,7 +796,7 @@ function webBox(){const L=webList(),c=SYNC.cfg(),w=SYNC.wst;
  return `<div class="row">${SYNC.ready()?'<button class="sm" data-a="webref">Refresh</button>':''}<span class="mut">Orders from your website. Quotes, delivery fees and payment checks are done in the owner app. Adding an order here links the sale to it. ${st}</span></div>`+
  tbl(['Received','Customer','Items','Pays by','Status','Total',''],L.map((q,i)=>`<tr><td>${tm(Date.parse(q.created_at)||Date.now())}${q.when_text?'<br><span class="mut">'+esc(q.when_text)+'</span>':''}</td><td>${esc(q.name)}<br><span class="mut">${esc(q.phone)} · ${q.svc==='pickup'?'Pickup':'Delivery'}</span></td><td>${webItems(q).map(l=>l.q+' × '+esc(l.n)).join(', ')}</td><td>${payTag(q)}</td><td>${WSTL[q.st]}</td><td>${peso(webTotal(q))}</td><td><button class="sm" data-a="webacc" data-i="${q.id}">Add to register</button></td></tr>`))}
 function obs(){const u=$("#sbu").value.trim(),k=$("#sbk").value.trim();S.own.sb.url=u;S.own.sb.key=k;const ok=!!(u&&k),p=$("#sbpill"),b=$("#sbin");if(!PAU){if(p)p.textContent=ok?"Not signed in":"Not connected yet";if(b)b.disabled=!ok}}
-function onlineBox(){const o=S.own.sb,c=SYNC.cfg();return `<div class="box"><h3>Online</h3><p class="mut">Everything works offline. Fill these in once Supabase is set up, then sign in, so sales and stock send to the cloud.</p><div class="fr"><input id="sbu" placeholder="Supabase URL" value="${esc(o.url)}" oninput="obs()" onchange="save();stChip()"><input id="sbk" placeholder="Anon key" value="${esc(o.key)}" oninput="obs()" onchange="save();stChip()"></div><div class="row" style="margin-top:8px"><span class="pill" id="sbpill">${!c?'Not connected yet':!PAU?'Not signed in':'Signed in as '+esc(PAU.email||'owner')}</span>${c?(PAU?'<button class="sm" data-a="sbout">Sign out</button>':'<button class="sm pri" data-a="sbin" id="sbin">Sign in</button>'):'<button class="sm pri" data-a="sbin" id="sbin" disabled>Sign in</button>'}</div></div>`}
+function onlineBox(){const o=S.own.sb,c=SYNC.cfg();return `<div class="box"><h3>Online</h3><p class="mut">Everything works offline. Fill these in once Supabase is set up, then sign in, so sales and stock send to the cloud.</p><div class="fr"><input id="sbu" placeholder="Supabase URL" value="${esc(o.url)}" oninput="obs()" onchange="save();stChip()"><input id="sbk" placeholder="Anon key" value="${esc(o.key)}" oninput="obs()" onchange="save();stChip()"></div><div class="row" style="margin-top:8px"><span class="pill" id="sbpill">${!c?'Not connected yet':!PAU?'Not signed in':'Signed in as '+esc(PAU.email||'owner')}</span>${c?(PAU?'<button class="sm" data-a="stk">Send stock now</button><button class="sm" data-a="sbout">Sign out</button>':'<button class="sm pri" data-a="sbin" id="sbin">Sign in</button>'):'<button class="sm pri" data-a="sbin" id="sbin" disabled>Sign in</button>'}<button class="sm" data-a="stkcsv">Download stock list</button></div></div>`}
 function cloudRows(){const c=SYNC.cfg(),ps=SYNC.pend()+SYNC.ipend(),w=SYNC.check(),e=SYNC.st.err;
  let h=`<div class="r"><span>Cloud (Supabase)</span><b>${!c?'Not connected yet':!PAU?'Sign in needed':e?'Problem':'Connected'}</b></div>`;
  if(SYNC.ready())h+=`<div class="r"><span>Waiting to send</span><b>${ps}</b></div><div class="r"><span>Last sent</span><b>${SYNC.st.last?new Date(SYNC.st.last).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'Not yet'}</b></div>`;
@@ -850,6 +851,8 @@ ck(i,b){if(b.dataset.k){S.ck=S.ck||{};S.ck[b.dataset.k]=1;save()}tab=i;fq='';ren
   save();tab='reg';render();if(q.svc==='delivery'&&!(+q.fee>0))toast('Heads up: no delivery fee was entered for this order. The total has no delivery charge.')},
  oacc(i){const o=S.online.splice(+i,1)[0];reset();cart=o.cart.map(l=>({...l,u2:++uid}));ctx.svc='del';ctx.cust=o.cust;save();tab='reg';render()},
  orej(i){S.online.splice(+i,1);save();render()},
+ stk(){if(!SYNC.ready()){toast('Sign in first');return}if(isOff()){toast('No internet right now');return}if(!S.own.sbg){SYNC.ask();return}S.own.sbi={};save();toast('Sending stock…');SYNC.run().then(()=>{toast(SYNC.st.err?'Could not send: '+SYNC.st.err:'Stock sent to the cloud at '+new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}));render()})},
+ stkcsv(){const r=[['Item','In stock','Alert at']].concat(S.items.map(p=>[p.name,p.stock,p.low])).concat(S.ings.map(i=>['Ingredient: '+i.name,i.qty,i.low])),b=new Blob([r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='patty-burps-stock-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()},
  nmfill(i){ctx.cust=i;regCart()},
  nmfill2(i){const e=$('#pcust');if(e)e.value=i},
  pay(){if(S.closed===day(Date.now())){toast('The day is closed. A manager can reopen it in Cash Drawer.');return}const t=calc();if(!t.total&&!cart.length)return;const K=['cash','gcash','card'].filter(k=>S.pay[k]);

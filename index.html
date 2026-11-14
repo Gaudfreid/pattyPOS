@@ -577,7 +577,7 @@ const SYNC=window.SYNC={st:{busy:0,err:'',last:0,sent:0},tm:0,
    S.items.forEach(p=>{const k=slug(p),r=(ci||[]).find(x=>x.id===k);
     if(!r){delete im[k];ch=1;return}
     const cl=JSON.stringify([r.name,+r.price,r.active!==false]),lo=ph(p);
-    if(sp[k]===undefined||(sp[k]===lo&&cl!==lo)){if(+r.price>0){p.name=r.name;p.price=+r.price;p.on=r.active!==false?1:0}sp[k]=ph(p);delete im[k];ch=1}
+    if(sp[k]===undefined||(sp[k]===lo&&cl!==lo)){if(+r.price>0){p.name=r.name;p.price=+r.price;p.on=r.active!==false?1:0}sp[k]=ph(p);delete im[k];ch=1;SYNC.adopted=1}
     else if(cl!==lo||+r.stock!==+p.stock){delete im[k];ch=1}});
    if(ch)save()}catch(e){}},
  async run(){if(!this.ready()||!S.own.sbg||this.st.busy||isOff())return;await this.rec();if(!this.pend()&&!this.ipend()&&!this.epend()&&!this.lpend())return;this.st.busy=1;let n=0;
@@ -624,8 +624,8 @@ setInterval(()=>SYNC.run(),60000);setInterval(()=>SYNC.web(),60000);addEventList
 const RT={ws:null,hb:0,rt:0,dt:0,n:0,
  on(){if(!SYNC.ready()||isOff()||this.ws)return;const c=SYNC.cfg();let w;try{w=new WebSocket(c.url.replace(/^http/,'ws').replace(/\/$/,'')+'/realtime/v1/websocket?apikey='+encodeURIComponent(c.key)+'&vsn=1.0.0')}catch(e){return}
   this.ws=w;
-  w.onopen=()=>{this.n=0;w.send(JSON.stringify({topic:'realtime:pb-inquiries',event:'phx_join',payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'inquiries'}]},access_token:PAU?PAU.access_token:c.key},ref:'1'}));clearInterval(this.hb);this.hb=setInterval(()=>{try{w.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'2'}))}catch(e){}},25000)};
-  w.onmessage=m=>{try{const d=JSON.parse(m.data);if(d.event==='postgres_changes'){clearTimeout(this.dt);this.dt=setTimeout(()=>SYNC.web(),400)}}catch(e){}};
+  w.onopen=()=>{this.n=0;['inquiries','items'].forEach((t,i)=>w.send(JSON.stringify({topic:'realtime:pb-'+t,event:'phx_join',payload:{config:{postgres_changes:[{event:'*',schema:'public',table:t}]},access_token:PAU?PAU.access_token:c.key},ref:''+(i+1)})));clearInterval(this.hb);this.hb=setInterval(()=>{try{w.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'2'}))}catch(e){}},25000)};
+  w.onmessage=m=>{try{const d=JSON.parse(m.data);if(d.event==='postgres_changes'){const t=d.payload&&d.payload.data&&d.payload.data.table;if(t==='items'){clearTimeout(this.it);this.it=setTimeout(async()=>{SYNC.rc=0;SYNC.adopted=0;await SYNC.rec();if(SYNC.adopted&&!document.querySelector('dialog[open],.dlg'))render()},500)}else{clearTimeout(this.dt);this.dt=setTimeout(()=>SYNC.web(),400)}}}catch(e){}};
   w.onclose=w.onerror=()=>{if(this.ws!==w)return;this.ws=null;clearInterval(this.hb);clearTimeout(this.rt);this.rt=setTimeout(()=>this.on(),Math.min(60000,3000*(++this.n)))}}};
 setInterval(()=>RT.on(),15000);setTimeout(()=>RT.on(),6000);setInterval(()=>{if(RT.ws)try{RT.ws.close()}catch(e){}},45*60000);
 
